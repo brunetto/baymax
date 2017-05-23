@@ -13,6 +13,8 @@ import (
 	"github.com/brunetto/goutils/conf"
 	"github.com/pkg/errors"
 	"gitlab.com/brunetto/ritter"
+	"github.com/GeertJohan/go.rice"
+	"html/template"
 )
 
 var version string
@@ -75,7 +77,7 @@ func main() {
 	}
 
 	// New locator
-	b, err = baymax.NewBaymax()
+	b, err = baymax.NewBaymax(config.Targets)
 	if err != nil {
 		logrus.Fatal(errors.Wrap(err, "can't create new locator"))
 	}
@@ -83,13 +85,34 @@ func main() {
 	// New engine
 	r = gin.New()
 
-	// Set middlewere
+	// Set middleware
 	r.Use(ginlogrus.Logger(log), gin.Recovery())
 
 	// Set routes
 	// Service routes
 	r.GET("/livecheck", func(c *gin.Context) { c.String(http.StatusOK, "%v", "OK") })
 	r.GET("/favicon.ico", func(*gin.Context) { return })
+
+	templateBox, err := rice.FindBox("../../assets/templates")
+	if err != nil {
+		log.Fatal(err)
+	}
+	// get file contents as string
+	templateString, err := templateBox.String("index.html.tmpl")
+	if err != nil {
+		log.Fatal(err)
+	}
+	// parse and execute the template
+	tmplMessage, err := template.New("message").Parse(templateString)
+	if err != nil {
+		log.Fatal(err)
+	}
+	r.SetHTMLTemplate(tmplMessage)
+
+	r.GET("/gui", b.MonitorGUI)
+
+	r.GET("/json", b.MonitorJSON)
+
 
 
 
