@@ -1,0 +1,11 @@
+{
+    "loglines": 20,
+    "logFile": "storage/logs/baymax.log",
+    "targets": [
+        {
+            "name": "Service name",
+            "url": "http://service_url:80/livecheck",
+            "alternative_url": "http://service_alternative_url:8082/livecheck"
+        }
+    ]
+}

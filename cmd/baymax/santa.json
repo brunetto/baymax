@@ -2,6 +2,6 @@
     "type": "exec",
     "execUrl": "https://raw.githubusercontent.com/brunetto/baymax/master/cmd/baymax/baymax_linux",
     "execName": "baymax",
-    "confUrl": "",
+    "confUrl": "https://raw.githubusercontent.com/brunetto/baymax/master/cmd/baymax/baymax.json",
     "confName": "baymax.json"
 }

@@ -11,6 +11,8 @@ import (
 	"github.com/Sirupsen/logrus"
 	"gitlab.com/brunetto/ritter"
 	"github.com/brunetto/gin-logrus"
+	"github.com/GeertJohan/go.rice"
+	"html/template"
 )
 
 type Baymax struct {
@@ -91,6 +93,23 @@ func NewDefaultBaymaxWS(configFile string, env string) (*Baymax, *gin.Engine, er
 
 	// New engine
 	r = gin.New()
+
+	// Load templates
+	templateBox, err := rice.FindBox("assets/templates")
+	if err != nil {
+		log.Fatal(err)
+	}
+	// get file contents as string
+	templateString, err := templateBox.String("index.html.tmpl")
+	if err != nil {
+		log.Fatal(err)
+	}
+	// parse and execute the template
+	tmplMessage, err := template.New("message").Parse(templateString)
+	if err != nil {
+		log.Fatal(err)
+	}
+	r.SetHTMLTemplate(tmplMessage)
 
 	// Set middleware
 	r.Use(ginlogrus.Logger(log), gin.Recovery())
