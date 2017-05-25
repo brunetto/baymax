@@ -71,15 +71,25 @@
     <div class="tr">
         <div class="th" style="text-align: left;"><span> Name </span></div>
         <div class="th" style="text-align: left;"><span> URL </span></div>
+        <div class="th" style="text-align: center;"><span> Status </span></div>
         <div class="th" style="text-align: left;"><span> Status msg </span></div>
-        <div class="th" style="text-align: left;"><span> Status </span></div>
     </div>
     {{ range $idx, $target := .Targets }}
     <div class="tr">
         <div class="td" style="text-align: left;"><span> {{ $target.Name }}</span></div>
-        <div class="td" style="text-align: left;"><span> {{ $target.URL }}</span></div>
+        <div class="td" style="text-align: left;"><span> <a href="{{ $target.URL }}">{{ $target.URL }}</a></span></div>
+        <div class="td" style="text-align: center;">
+            {{ if eq $target.Status 1 }}
+            <span class="glyphicon glyphicon-ok" style="color: green;" aria-hidden="true"></span>
+            {{ else if eq $target.Status 0 }}
+            <span class="glyphicon glyphicon-remove" style="color: red;" aria-hidden="true"></span>
+            {{ else if eq $target.Status 2 }}
+            <span class="glyphicon glyphicon-bell" style="color: yellow;" aria-hidden="true"></span>
+            {{ else }}
+            <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> <span><strong>Unknown tatus: {{ $target.Status }}</strong></span>
+            {{ end }}
+        </div>
         <div class="td" style="text-align: left;"><span> {{ $target.Message }}</span></div>
-        <div class="td" style="text-align: left;"><span> ICON </span></div>
     </div>
     {{ end }}
 </div>

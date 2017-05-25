@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"time"
 	"github.com/pkg/errors"
+	"github.com/brunetto/goutils/conf"
+	"github.com/Sirupsen/logrus"
+	"gitlab.com/brunetto/ritter"
+	"github.com/brunetto/gin-logrus"
 )
 
 type Baymax struct {
@@ -38,6 +42,65 @@ func NewBaymax(t Targets) (*Baymax, error) {
 		t,
 	}
 	return b, nil
+}
+
+func NewDefaultBaymaxWS(configFile string, env string) (*Baymax, *gin.Engine, error) {
+	var (
+		err error
+		config        Conf
+		rotatedWriter *ritter.Writer
+		b *Baymax
+		r *gin.Engine
+	)
+	// Read conf
+	err = conf.LoadJsonConf(configFile, &config)
+	if err != nil {
+		return b, r, errors.Wrap(err, "can't load json config file baymax.json")
+	}
+
+	// New writer with rotation
+	rotatedWriter, err = ritter.NewRitterTime(config.LogFile)
+	if err != nil {
+		return b, r, errors.Wrap(err, "can't create log file")
+	}
+
+	// Tee to stderr
+	rotatedWriter.TeeToStdErr = true
+
+	// Create logger
+	log := &logrus.Logger{
+		Out:       rotatedWriter,
+		Hooks: make(logrus.LevelHooks),
+		Level: logrus.DebugLevel,
+	}
+
+	// Set text formatter options
+	if env == "dev" {
+		logFormatter := new(logrus.TextFormatter)
+		logFormatter.FullTimestamp = true
+		log.Formatter = new(logrus.TextFormatter)
+	} else {
+		log.Formatter = new(logrus.JSONFormatter)
+	}
+
+	// New locator
+	b, err = NewBaymax(config.Targets)
+	if err != nil {
+		return b, r, errors.Wrap(err, "can't create new locator")
+	}
+
+	// New engine
+	r = gin.New()
+
+	// Set middleware
+	r.Use(ginlogrus.Logger(log), gin.Recovery())
+
+	// Set routes
+	// Service routes
+	r.GET("/livecheck", func(c *gin.Context) { c.String(http.StatusOK, "%v", "OK") })
+	r.GET("/favicon.ico", func(*gin.Context) { return })
+
+	return b, r, err
 }
 
 func (b *Baymax) MonitorJSON (c *gin.Context) {
