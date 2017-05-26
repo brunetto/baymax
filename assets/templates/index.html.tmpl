@@ -67,6 +67,23 @@
 <body>
 <h1>{{ .Title }}</h1>
 
+<h2>Summary</h2>
+
+<div class="table" style="width: 140px;">
+    <div class="tr">
+        <div class="th" style="text-align: left; width: 70px;"><span> Ok </span></div>
+        <div class="th" style="text-align: left; width: 70px;"><span> Warnings </span></div>
+        <div class="th" style="text-align: left; width: 70px;"><span> Errors </span></div>
+    </div>
+<div class="tr">
+        <div class="td" style="text-align: right; width: 70px; background-color: green"><span> {{ .Ok }} </span></div>
+        <div class="td" style="text-align: right; width: 70px;background-color: #ffa009"><span> {{ .Warnings }} </span></div>
+        <div class="td" style="text-align: right; width: 70px;background-color: red"><span> {{ .Errors }} </span></div>
+    </div>
+</div>
+
+<h2>Details</h2>
+
 <div class="table">
     <div class="tr">
         <div class="th" style="text-align: left;"><span> Name </span></div>
@@ -84,7 +101,7 @@
             {{ else if eq $target.Status 0 }}
             <span class="glyphicon glyphicon-remove" style="color: red;" aria-hidden="true"></span>
             {{ else if eq $target.Status 2 }}
-            <span class="glyphicon glyphicon-bell" style="color: yellow;" aria-hidden="true"></span>
+            <span class="glyphicon glyphicon-bell" style="color: #ffa009;" aria-hidden="true"></span>
             {{ else }}
             <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span> <span><strong>Unknown tatus: {{ $target.Status }}</strong></span>
             {{ end }}

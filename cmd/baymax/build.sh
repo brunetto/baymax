@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+cd ../../
+build.sh
+cd cmd/baymax
+
 version=`date -u +%Y%m%d-%H%M%S`
 output="$(pwd)/${PWD##*/}"
 
