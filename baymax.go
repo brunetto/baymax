@@ -5,18 +5,14 @@ import (
 	"io/ioutil"
 	"strings"
 	"net/http"
-	"time"
 	"github.com/pkg/errors"
-	"github.com/brunetto/goutils/conf"
-	"github.com/Sirupsen/logrus"
-	"gitlab.com/brunetto/ritter"
-	"github.com/brunetto/gin-logrus"
-	"github.com/GeertJohan/go.rice"
-	"html/template"
 	"fmt"
 	"sort"
 	"strconv"
-	"gitlab.com/brunetto/hang"
+	"os"
+	"github.com/rogpeppe/rog-go/reverse"
+	"github.com/brunetto/goutils/file"
+	"time"
 )
 
 //go:generate rice embed-go
@@ -26,12 +22,13 @@ var Version string
 type Baymax struct {
 	*http.Client
 	Targets []Target
+	LogLines int
 }
 
 type Conf struct {
-	Targets []Target
-	LogLines int
-	LogFile string
+	Targets []Target `json:"targets"`
+	LogLines int `json:"log_lines"`
+	LogFile string `json:"log_file"`
 }
 
 type errorSlice []error
@@ -66,100 +63,16 @@ func (t Targets) Len() int           { return len(t) }
 func (t Targets) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
 func (t Targets) Less(i, j int) bool { return t[i].Name < t[j].Name }
 
-func NewBaymax(t Targets) (*Baymax, error) {
-	b := &Baymax{
-		&http.Client{Timeout: 60 * time.Second},
-		t,
-	}
-	return b, nil
-}
-
-func NewDefaultBaymaxWS(configFile string, env string) (*Baymax, *gin.Engine, error) {
-	var (
-		err error
-		config        Conf
-		rotatedWriter *ritter.Writer
-		b *Baymax
-		r *gin.Engine
-	)
-	// Read conf
-	err = conf.LoadJsonConf(configFile, &config)
-	if err != nil {
-		return b, r, errors.Wrap(err, "can't load json config file baymax.json")
-	}
-
-	// New writer with rotation
-	rotatedWriter, err = ritter.NewRitterTime(config.LogFile)
-	if err != nil {
-		return b, r, errors.Wrap(err, "can't create log file")
-	}
-
-	// Tee to stderr
-	rotatedWriter.TeeToStdErr = true
-
-	// Create logger
-	log := &logrus.Logger{
-		Out:       rotatedWriter,
-		Hooks: make(logrus.LevelHooks),
-		Level: logrus.DebugLevel,
-	}
-
-	// Set text formatter options
-	if env == "dev" {
-		logFormatter := new(logrus.TextFormatter)
-		logFormatter.FullTimestamp = true
-		log.Formatter = new(logrus.TextFormatter)
-	} else {
-		log.Formatter = new(logrus.JSONFormatter)
-	}
-
-	hang.LogStartAndStop("baymax", log)
-
-	// New locator
-	b, err = NewBaymax(config.Targets)
-	if err != nil {
-		return b, r, errors.Wrap(err, "can't create new locator")
-	}
-
-	// New engine
-	r = gin.New()
-
-	// Load templates
-	templateBox, err := rice.FindBox("assets/templates")
-	if err != nil {
-		log.Fatal(err)
-	}
-	// get file contents as string
-	templateString, err := templateBox.String("index.html.tmpl")
-	if err != nil {
-		log.Fatal(err)
-	}
-	// parse and execute the template
-	tmplMessage, err := template.New("message").Parse(templateString)
-	if err != nil {
-		log.Fatal(err)
-	}
-	r.SetHTMLTemplate(tmplMessage)
-
-	// Set middleware
-	r.Use(ginlogrus.Logger(log), gin.Recovery())
-
-	// Set routes
-	// Service routes
-	r.GET("/livecheck", func(c *gin.Context) { c.String(http.StatusOK, "%v", "OK") })
-	r.GET("/favicon.ico", func(*gin.Context) { return })
-
-	return b, r, err
-}
-
 func (b *Baymax) MonitorJSON (c *gin.Context) {
 	b.CollectStatus()
+	b.CollectLogs()
 	c.JSON(http.StatusOK, b.Targets)
 	return
 }
 
 func (b *Baymax) MonitorGUI (c *gin.Context) {
 	ok, warns, errs := b.CollectStatus()
+	b.CollectLogs()
 	c.HTML(http.StatusOK, "message", gin.H{
 		"Title": "Status Monitor",
 		"Targets": b.Targets,
@@ -189,7 +102,6 @@ func (b *Baymax) CollectStatus () (ok, warns, errs int) {
 	return ok, warns, errs
 }
 
-func (b *Baymax) CollectLogs () {}
 
 func (b *Baymax) ProbeTarget(t Target) Target {
 	var (
@@ -246,5 +158,58 @@ func (b *Baymax) ProbeTarget(t Target) Target {
 		t.Status = 1
 		t.Message = "OK"
 	}
+	return t
+}
+
+func (b *Baymax) CollectLogs () {
+	var (
+		targets Targets
+	)
+	for _, t := range b.Targets {
+		t = b.GetTargetLog(t)
+		targets = append(targets, t)
+	}
+	sort.Sort(targets)
+	b.Targets = targets
+	return
+}
+
+func (b *Baymax) GetTargetLog (t Target) Target {
+	if t.LogLocation == "" {
+		t.Logs = errors.New("no log specified").Error()
+		return t
+	}
+	logFile := strings.Replace(t.LogLocation, "{{date}}", time.Now().Format("2006-01-02"), 1)
+
+	if !file.Exists(logFile) {
+		t.Logs = "log file doesn't exists"
+		return t
+	}
+
+	logFileObj, err := os.Open(logFile)
+	if err != nil {
+		t.Logs = errors.Wrap(err, "can't open log file").Error()
+		return t
+	}
+	defer logFileObj.Close()
+
+	logs := []string{}
+	count := 0
+	scanner := reverse.NewScanner(logFileObj)
+	fmt.Println(logFile, b.LogLines)
+	for scanner.Scan() {
+		if count >= b.LogLines {
+			break
+		}
+		line := scanner.Text()
+		fmt.Println("line ", line)
+		logs = append(logs, line)
+		count++
+	}
+	// Reverse the order
+	for i:=1; i<=len(logs); i++ {
+		t.Logs += logs[len(logs)-i]
+	}
+
 	return t
 }

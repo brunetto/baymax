@@ -1,11 +1,12 @@
 {
-    "loglines": 20,
+    "log_lines": 20,
+    "log_file": "storage/logs/baymax.log",
     "targets": [
         {
             "name": "Service name",
             "url": "http://service_url:80/livecheck",
             "alternative_url": "http://service_alternative_url:8082/livecheck",
-            "logFile": "storage/logs/baymax.log"
+            "log_locations": "storage/logs/pippo.log"
         }
     ]
 }

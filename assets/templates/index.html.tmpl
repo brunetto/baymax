@@ -90,6 +90,7 @@
         <div class="th" style="text-align: left;"><span> URL </span></div>
         <div class="th" style="text-align: center;"><span> Status </span></div>
         <div class="th" style="text-align: left;"><span> Status msg </span></div>
+        <div class="th" style="text-align: left;"><span> Service log </span></div>
     </div>
     {{ range $idx, $target := .Targets }}
     <div class="tr">
@@ -107,6 +108,7 @@
             {{ end }}
         </div>
         <div class="td" style="text-align: left;"><span> {{ $target.Message }}</span></div>
+        <div class="td" style="text-align: left;"><span> {{ $target.Logs }}</span></div>
     </div>
     {{ end }}
 </div>
