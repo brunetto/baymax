@@ -146,7 +146,7 @@ func (b *Baymax) ProbeTarget(t Target) Target {
 
 	if strings.ToLower(string(body)) != "ok" {
 		t.Status = 2
-		errs = append(errs, errors.Wrap(err, fmt.Sprintf("service not ok: %v", string(body))))
+		errs = append(errs, fmt.Errorf("service not ok: %v", string(body)))
 		t.Message = errs.Error()
 		return t
 	}
