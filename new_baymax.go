@@ -9,7 +9,7 @@ import (
 	"github.com/brunetto/goutils/conf"
 	"html/template"
 	"github.com/pkg/errors"
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 	"github.com/brunetto/gin-logrus"
 	"net/http"
 )

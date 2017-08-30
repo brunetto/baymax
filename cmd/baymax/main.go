@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 
 	"github.com/brunetto/baymax"
 	"github.com/pkg/errors"

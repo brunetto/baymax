@@ -1,7 +1,7 @@
 package baymax
 
 import (
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"strings"
 	"net/http"
